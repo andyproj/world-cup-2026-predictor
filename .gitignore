@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.DS_Store
+data/*.csv
+data/*.json
+output/*.csv
+output/*.json
+!data/.gitkeep
+!output/.gitkeep
