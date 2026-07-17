@@ -1,22 +1,21 @@
-# World Cup 2026 Predictor — Lean MVP
+# World Cup 2026 Predictor
 
-This starter project:
+A comprehensive prediction system for the 2026 FIFA World Cup, featuring Elo-based team ratings, Poisson model forecasting, Monte Carlo tournament simulation, and optional market odds integration.
 
-1. downloads a free historical men's international-match dataset;
-2. downloads the open 2026 World Cup schedule;
-3. builds current team Elo ratings;
-4. builds recency-weighted attack and defence strengths;
-5. predicts every currently known team-versus-team World Cup fixture;
-6. writes CSV and JSON outputs;
-7. provides a local Streamlit dashboard.
+## Overview
 
-The first version covers the 72 group-stage fixtures before the tournament.
-Knockout fixtures are included automatically once their participants are known
-in the schedule feed. A complete pre-tournament knockout simulation is the next
-module, because the 48-team third-place qualification rules require separate
-bracket logic.
+This project:
 
-## 1. Prerequisites
+1. Downloads a free historical men's international-match dataset
+2. Downloads the open 2026 World Cup schedule
+3. Builds current team Elo ratings and attack/defense strengths
+4. Predicts every World Cup fixture with match-level probabilities
+5. Simulates complete tournament outcomes with team advancement probabilities
+6. Optionally blends model predictions with live market odds
+7. Monitors live match results and updates forecasts in real-time
+8. Provides a local Streamlit dashboard with multiple analytical views
+
+## Prerequisites
 
 Install:
 
@@ -26,9 +25,11 @@ Install:
 
 Open this folder in VS Code.
 
-## 2. Create the Python environment
+## Setup
 
-### Windows PowerShell
+### Create the Python environment
+
+#### Windows PowerShell
 
 ```powershell
 py -3.11 -m venv .venv
@@ -44,7 +45,7 @@ If `py -3.11` is unavailable, try:
 python -m venv .venv
 ```
 
-### macOS or Linux
+#### macOS or Linux
 
 ```bash
 python3 -m venv .venv
@@ -56,7 +57,9 @@ pip install -r requirements.txt
 In VS Code, press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS), choose
 **Python: Select Interpreter**, and select the interpreter inside `.venv`.
 
-## 3. Generate predictions
+## Quick Start
+
+### 1. Generate predictions
 
 ```bash
 python run.py
@@ -68,35 +71,141 @@ To force fresh downloads:
 python run.py --refresh
 ```
 
-Expected outputs:
+**Outputs:**
+- `output/latest_predictions.csv` — Match-level predictions
+- `output/latest_predictions.json` — Match predictions in JSON format
+- `output/team_ratings.csv` — Current Elo ratings for all teams
+- `output/model_status.json` — Model metadata
+- `output/prediction_history.csv` — Historical prediction records
 
-```text
-output/latest_predictions.csv
-output/latest_predictions.json
-output/team_ratings.csv
-output/model_status.json
-output/prediction_history.csv
+### 2. Generate tournament odds
+
+```powershell
+python simulate.py --runs 5000
 ```
 
-The starter archive already contains a current historical-results snapshot and the 2026 group schedule. Internet access is only required when you force a refresh.
+For a faster test: `python simulate.py --runs 1000`
+For more stable forecasts: `python simulate.py --runs 10000`
 
-## 4. Open the dashboard
+**Outputs:**
+- `output/tournament_probabilities.csv` — Team advancement probabilities
+- `output/tournament_probabilities.json` — Tournament odds in JSON
+- `output/simulation_status.json` — Simulation metadata
+
+### 3. Open the dashboard
 
 ```bash
 streamlit run app.py
 ```
 
-Your browser should open a local page, normally:
+Your browser should open a local page, normally: `http://localhost:8501`
 
-```text
-http://localhost:8501
-```
+**Dashboard tabs:**
+- **Predictions** — Match-level forecasts
+- **Completed Matches** — Results and before/after analysis
+- **Prediction Changes** — How forecasts shift after new results
+- **Tournament Odds** — Team probabilities for each tournament stage
+- **Automated Pool Picks** — Market-blended recommendations (if configured)
 
-## 5. Run tests
+### 4. Run tests
 
 ```bash
 pytest
 ```
+
+## Live Match Monitoring
+
+The monitor automatically detects newly completed matches and recalculates forecasts.
+
+**One-time check:**
+
+```powershell
+python watch.py --once
+```
+
+**Continuous monitoring:**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python watch.py --interval 15
+```
+
+Keep this running in a second terminal. Press `Ctrl+C` to stop.
+
+**Outputs:**
+- `output/completed_matches.csv` — Match results and scoring
+- `output/prediction_change_history.csv` — Impact of each result on forecasts
+
+### Optional: Use football-data.org feed
+
+The project uses OpenFootball by default. For a more purpose-built result feed:
+
+1. Register for a free token at [football-data.org](https://football-data.org)
+2. Copy `.env.example` to `.env`:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+3. Replace `replace_with_your_token` with your token
+4. Restart the monitor
+
+The `.env` file is excluded by `.gitignore` and only read locally.
+
+## Market Odds Integration (Optional)
+
+To blend model predictions with live betting odds:
+
+1. Get an API key from [The Odds API](https://theoddsapi.com)
+2. Add to `.env`:
+   ```text
+   THE_ODDS_API_KEY=your_key_here
+   ```
+3. Run:
+   ```powershell
+   python run.py --refresh
+   python simulate.py --runs 5000
+   streamlit run app.py
+   ```
+
+**Default blend:** 65% model + 35% market (when available)
+
+The **Automated Pool Picks** tab appears when market data is active.
+
+## Modelling Notes
+
+- **Group ties** use official head-to-head rules; Elo replaces fair-play cards as the final tiebreaker
+- **Extra time** uses one-third of regulation expected-goal rates
+- **Penalty shootouts** use Elo-adjusted advancement probabilities
+- **Third-place bracket** requires separate logic for the 48-team format (caches mapping on first run)
+
+## Project Structure
+
+```
+├── app.py                     # Streamlit dashboard
+├── run.py                     # Generate match predictions
+├── simulate.py                # Tournament simulation
+├── watch.py                   # Live result monitoring
+├── requirements.txt
+│
+├── src/
+│   ├── aliases.py            # Team name mappings
+│   ├── elo.py                # Elo rating engine
+│   ├── poisson_model.py       # Match probability model
+│   ├── tournament.py          # Bracket logic and simulation
+│   ├── market_odds.py         # Odds API integration
+│   ├── data_sources.py        # Data fetching
+│   └── pipeline.py            # Main orchestration
+│
+├── data/
+│   ├── historical_results.csv
+│   ├── worldcup_2026.json     # Schedule
+│   └── third_place_mapping.csv
+│
+└── output/                    # Generated predictions and results
+```
+
+## No internet required (except on `--refresh`)
+
+The project includes cached historical data and the 2026 schedule. Internet is only needed when forcing fresh downloads with `--refresh` or when using live monitoring and market odds features.
 
 ## How Version 0.1 works
 
